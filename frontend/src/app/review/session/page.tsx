@@ -147,6 +147,7 @@ export default function ReviewSessionPage() {
 
             {card.example_sentence && (
               <div className="bg-gray-50 rounded-lg p-3 text-sm cjk text-gray-700 border-l-4 border-red-300">
+                <span className="block text-xs text-gray-400 not-cjk mb-1">Example sentence</span>
                 {card.example_sentence}
               </div>
             )}
