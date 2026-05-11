@@ -17,7 +17,7 @@ export default function LibraryPage() {
     getSources().then(setSources).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p className="text-gray-500">Loading library…</p>;
+  if (loading) return <p className="text-gray-500 dark:text-gray-400">Loading library…</p>;
 
   return (
     <div>
@@ -32,7 +32,7 @@ export default function LibraryPage() {
       </div>
 
       {sources.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-gray-400 dark:text-gray-500">
           <p className="text-4xl mb-3">📚</p>
           <p>No sources yet. Import a PDF, EPUB, YouTube video, or text.</p>
         </div>
@@ -42,14 +42,14 @@ export default function LibraryPage() {
             <Link
               key={s.id}
               href={`/library/${s.id}`}
-              className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
+              className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:shadow-md dark:hover:shadow-gray-900 transition-shadow"
             >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <span className="text-2xl">{TYPE_ICONS[s.source_type] ?? "📝"}</span>
                 <StatusBadge status={s.status} />
               </div>
               <h2 className="font-semibold text-sm mb-1 cjk line-clamp-2">{s.title}</h2>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 {s.word_count > 0 ? `${s.word_count} words` : "—"}
                 {" · "}
                 {new Date(s.created_at).toLocaleDateString()}

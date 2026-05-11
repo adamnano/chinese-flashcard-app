@@ -37,9 +37,7 @@ export default function ImportPage() {
       } else if (type === "pdf" || type === "epub") {
         if (!file) { setError("Please select a file."); return; }
         source = await ingestFile(type, title, file);
-      } else {
-        return;
-      }
+      } else { return; }
       router.push(`/library/${source.id}`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -48,11 +46,12 @@ export default function ImportPage() {
     }
   }
 
+  const inputCls = "w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500";
+
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Import New Source</h1>
 
-      {/* Step 1: choose type */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         {TYPES.map((t) => (
           <button
@@ -60,53 +59,42 @@ export default function ImportPage() {
             onClick={() => { setType(t.id); setError(""); }}
             className={`p-4 rounded-xl border-2 text-left transition-all
               ${type === t.id
-                ? "border-red-500 bg-red-50"
-                : "border-gray-200 hover:border-gray-300 bg-white"
+                ? "border-red-500 bg-red-50 dark:bg-red-950"
+                : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-900"
               }`}
           >
             <div className="text-2xl mb-1">{t.icon}</div>
             <div className="font-semibold text-sm">{t.label}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{t.desc}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t.desc}</div>
           </button>
         ))}
       </div>
 
-      {/* Step 2: input */}
       {type && (
-        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">Title</label>
-            <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              placeholder="e.g. 紅樓夢 Chapter 1"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
+            <input className={inputCls} placeholder="e.g. 紅樓夢 Chapter 1" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
 
           {type === "text" && (
             <div>
               <label className="block text-sm font-medium mb-1">Chinese Text</label>
               <textarea
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-48 resize-y cjk"
+                className={`${inputCls} h-48 resize-y cjk`}
                 placeholder="貼上繁體中文文字..."
                 value={text}
                 onChange={(e) => setText(e.target.value)}
               />
-              <p className="text-xs text-gray-400 mt-1">{text.length} characters</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{text.length} characters</p>
             </div>
           )}
 
           {type === "youtube" && (
             <div>
               <label className="block text-sm font-medium mb-1">YouTube URL</label>
-              <input
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                placeholder="https://www.youtube.com/watch?v=..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-              />
-              <p className="text-xs text-gray-400 mt-1">
+              <input className={inputCls} placeholder="https://www.youtube.com/watch?v=..." value={url} onChange={(e) => setUrl(e.target.value)} />
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                 The video must have Traditional Chinese captions (zh-TW or zh-Hant).
               </p>
             </div>
@@ -114,27 +102,24 @@ export default function ImportPage() {
 
           {(type === "pdf" || type === "epub") && (
             <div>
-              <label className="block text-sm font-medium mb-1">
-                {type.toUpperCase()} File
-              </label>
+              <label className="block text-sm font-medium mb-1">{type.toUpperCase()} File</label>
               <input
                 type="file"
                 accept={type === "pdf" ? ".pdf" : ".epub"}
-                className="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-4 file:rounded file:border-0 file:bg-red-50 file:text-red-700 file:text-sm file:cursor-pointer"
+                className="block text-sm text-gray-600 dark:text-gray-400 file:mr-3 file:py-1.5 file:px-4 file:rounded file:border-0 file:bg-red-50 dark:file:bg-red-950 file:text-red-700 dark:file:text-red-400 file:text-sm file:cursor-pointer"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
             </div>
           )}
 
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded">{error}</p>
+            <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 px-3 py-2 rounded">{error}</p>
           )}
 
           <button
             onClick={submit}
             disabled={loading}
-            className="w-full bg-red-600 text-white rounded-lg py-2.5 font-semibold text-sm
-              hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full bg-red-600 text-white rounded-lg py-2.5 font-semibold text-sm hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? "Processing…" : "Import & Generate Flashcards"}
           </button>

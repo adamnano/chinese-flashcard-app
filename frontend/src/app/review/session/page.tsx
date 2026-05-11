@@ -6,12 +6,12 @@ import type { Flashcard, SessionSummary } from "@/lib/types";
 import { HskBadge, TocflBadge } from "@/components/ui/Badge";
 
 const RATINGS = [
-  { quality: 0, label: "Blackout", color: "bg-red-100 text-red-700 border-red-300 hover:bg-red-200" },
-  { quality: 1, label: "Wrong", color: "bg-red-50 text-red-600 border-red-200 hover:bg-red-100" },
-  { quality: 2, label: "Knew it (wrong)", color: "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100" },
-  { quality: 3, label: "Hard", color: "bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100" },
-  { quality: 4, label: "Good", color: "bg-green-50 text-green-700 border-green-200 hover:bg-green-100" },
-  { quality: 5, label: "Easy", color: "bg-green-100 text-green-800 border-green-300 hover:bg-green-200" },
+  { quality: 0, label: "Blackout", color: "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 border-red-300 dark:border-red-800 hover:bg-red-200 dark:hover:bg-red-900" },
+  { quality: 1, label: "Wrong", color: "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900 hover:bg-red-100 dark:hover:bg-red-900" },
+  { quality: 2, label: "Knew it (wrong)", color: "bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-900 hover:bg-orange-100 dark:hover:bg-orange-900" },
+  { quality: 3, label: "Hard", color: "bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900 hover:bg-yellow-100 dark:hover:bg-yellow-900" },
+  { quality: 4, label: "Good", color: "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900 hover:bg-green-100 dark:hover:bg-green-900" },
+  { quality: 5, label: "Easy", color: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700 hover:bg-green-200 dark:hover:bg-green-800" },
 ];
 
 export default function ReviewSessionPage() {
@@ -27,7 +27,6 @@ export default function ReviewSessionPage() {
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Load the first card — passed via URL or re-fetched
   const loadInitialCard = useCallback(async () => {
     if (initialCardId) {
       const c = await getFlashcard(initialCardId);
@@ -62,30 +61,24 @@ export default function ReviewSessionPage() {
         <div className="text-5xl mb-4">🎉</div>
         <h2 className="text-2xl font-bold mb-2">Session Complete!</h2>
         <div className="grid grid-cols-3 gap-3 my-6 text-center">
-          <div className="bg-gray-50 rounded-xl p-3">
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3">
             <div className="text-2xl font-bold">{summary.cards_reviewed}</div>
-            <div className="text-xs text-gray-500">Reviewed</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Reviewed</div>
           </div>
-          <div className="bg-green-50 rounded-xl p-3">
-            <div className="text-2xl font-bold text-green-700">{summary.cards_correct}</div>
-            <div className="text-xs text-gray-500">Correct</div>
+          <div className="bg-green-50 dark:bg-green-950 rounded-xl p-3">
+            <div className="text-2xl font-bold text-green-700 dark:text-green-400">{summary.cards_correct}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Correct</div>
           </div>
-          <div className="bg-blue-50 rounded-xl p-3">
-            <div className="text-2xl font-bold text-blue-700">{summary.accuracy_pct}%</div>
-            <div className="text-xs text-gray-500">Accuracy</div>
+          <div className="bg-blue-50 dark:bg-blue-950 rounded-xl p-3">
+            <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">{summary.accuracy_pct}%</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Accuracy</div>
           </div>
         </div>
         <div className="flex gap-3 justify-center">
-          <button
-            onClick={() => router.push("/review")}
-            className="px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
-          >
+          <button onClick={() => router.push("/review")} className="px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">
             Review Again
           </button>
-          <button
-            onClick={() => router.push("/stats")}
-            className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50"
-          >
+          <button onClick={() => router.push("/stats")} className="px-5 py-2 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800">
             View Stats
           </button>
         </div>
@@ -94,51 +87,51 @@ export default function ReviewSessionPage() {
   }
 
   if (!card) {
-    return <p className="text-center py-16 text-gray-500">Loading card…</p>;
+    return <p className="text-center py-16 text-gray-500 dark:text-gray-400">Loading card…</p>;
   }
 
   return (
     <div className="max-w-xl mx-auto">
       {remaining !== null && (
-        <p className="text-xs text-gray-400 text-right mb-4">{remaining} cards remaining</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 text-right mb-4">{remaining} cards remaining</p>
       )}
 
       {/* Flashcard */}
       <div className="card-flip cursor-pointer mb-6" onClick={() => !flipped && setFlipped(true)}>
         <div className={`card-flip-inner ${flipped ? "flipped" : ""}`}>
           {/* Front */}
-          <div className="card-face bg-white border-2 border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 min-h-48">
+          <div className="card-face bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center p-8 min-h-48">
             <div className="text-6xl font-medium cjk mb-3">{card.traditional}</div>
             {!flipped && (
-              <p className="text-xs text-gray-400 mt-4">Tap to reveal</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-4">Tap to reveal</p>
             )}
           </div>
           {/* Back */}
-          <div className="card-face card-back bg-white border-2 border-red-200 rounded-2xl p-6">
+          <div className="card-face card-back bg-white dark:bg-gray-900 border-2 border-red-200 dark:border-red-900 rounded-2xl p-6">
             <div className="text-4xl font-medium cjk mb-1">{card.traditional}</div>
             {card.simplified && card.simplified !== card.traditional && (
-              <div className="text-lg text-gray-400 cjk">{card.simplified}</div>
+              <div className="text-lg text-gray-400 dark:text-gray-500 cjk">{card.simplified}</div>
             )}
-            <div className="text-sm text-gray-500 mb-2">{card.pinyin}</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">{card.pinyin}</div>
             <div className="flex gap-1 mb-3">
               <HskBadge level={card.hsk_level} />
               <TocflBadge level={card.tocfl_level} />
             </div>
 
-            {/* Primary meaning — short direct translation */}
-            <p className="text-xl font-semibold text-gray-900 mb-4">{card.base_meaning}</p>
+            {/* Primary meaning */}
+            <p className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{card.base_meaning}</p>
 
             {/* Context toggle */}
             {card.contextual_meaning && (
               <div className="mb-3">
                 <button
                   onClick={(e) => { e.stopPropagation(); setContextOpen(o => !o); }}
-                  className="text-xs text-red-600 border border-red-200 rounded-full px-3 py-1 hover:bg-red-50 transition-colors"
+                  className="text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-full px-3 py-1 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
                 >
                   {contextOpen ? "Hide context" : "In what context was this used?"}
                 </button>
                 {contextOpen && (
-                  <p className="mt-2 text-sm text-gray-600 italic leading-relaxed">
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 italic leading-relaxed">
                     {card.contextual_meaning}
                   </p>
                 )}
@@ -146,8 +139,8 @@ export default function ReviewSessionPage() {
             )}
 
             {card.example_sentence && (
-              <div className="bg-gray-50 rounded-lg p-3 text-sm cjk text-gray-700 border-l-4 border-red-300">
-                <span className="block text-xs text-gray-400 not-cjk mb-1">Example sentence</span>
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-sm cjk text-gray-700 dark:text-gray-300 border-l-4 border-red-300 dark:border-red-700">
+                <span className="block text-xs text-gray-400 dark:text-gray-500 not-cjk mb-1">Example sentence</span>
                 {card.example_sentence}
               </div>
             )}
@@ -155,7 +148,7 @@ export default function ReviewSessionPage() {
         </div>
       </div>
 
-      {/* Rating buttons — only shown after flip */}
+      {/* Rating buttons */}
       {flipped && (
         <div className="grid grid-cols-3 gap-2">
           {RATINGS.map(({ quality, label, color }) => (

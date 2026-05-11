@@ -26,12 +26,8 @@ export default function ReviewPage() {
         hsk_levels: selectedHsk.length ? selectedHsk : undefined,
         limit,
       });
-      if (!session.card) {
-        alert("No cards due with the current filter.");
-        return;
-      }
-      const cardParam = session.card ? `&card_id=${session.card.id}` : "";
-      router.push(`/review/session?session_id=${session.session_id}${cardParam}`);
+      if (!session.card) { alert("No cards due with the current filter."); return; }
+      router.push(`/review/session?session_id=${session.session_id}&card_id=${session.card.id}`);
     } finally {
       setLoading(false);
     }
@@ -48,18 +44,18 @@ export default function ReviewPage() {
 
       {due && (
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-orange-600">{due.due_today}</div>
-            <div className="text-sm text-orange-700 mt-1">Due today</div>
+          <div className="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-900 rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">{due.due_today}</div>
+            <div className="text-sm text-orange-700 dark:text-orange-300 mt-1">Due today</div>
           </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-blue-600">{due.due_this_week}</div>
-            <div className="text-sm text-blue-700 mt-1">Due this week</div>
+          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{due.due_this_week}</div>
+            <div className="text-sm text-blue-700 dark:text-blue-300 mt-1">Due this week</div>
           </div>
         </div>
       )}
 
-      <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-5">
         <div>
           <label className="block text-sm font-semibold mb-2">Filter by Source (optional)</label>
           <div className="flex flex-wrap gap-2">
@@ -69,8 +65,8 @@ export default function ReviewPage() {
                 onClick={() => toggleSource(s.id)}
                 className={`px-3 py-1 text-xs rounded-full border transition-colors
                   ${selectedSources.includes(s.id)
-                    ? "bg-red-100 border-red-400 text-red-700"
-                    : "border-gray-300 text-gray-600 hover:border-gray-400"
+                    ? "bg-red-100 dark:bg-red-950 border-red-400 dark:border-red-700 text-red-700 dark:text-red-400"
+                    : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500"
                   }`}
               >
                 {s.title}
@@ -88,8 +84,8 @@ export default function ReviewPage() {
                 onClick={() => toggleHsk(l)}
                 className={`px-3 py-1 text-xs rounded-full border transition-colors
                   ${selectedHsk.includes(l)
-                    ? "bg-blue-100 border-blue-400 text-blue-700"
-                    : "border-gray-300 text-gray-600 hover:border-gray-400"
+                    ? "bg-blue-100 dark:bg-blue-950 border-blue-400 dark:border-blue-700 text-blue-700 dark:text-blue-400"
+                    : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500"
                   }`}
               >
                 {l === 7 ? "HSK 7-9" : `HSK ${l}`}
@@ -100,14 +96,14 @@ export default function ReviewPage() {
 
         <div>
           <label className="block text-sm font-semibold mb-2">
-            Max cards per session: <span className="text-red-600">{limit}</span>
+            Max cards per session: <span className="text-red-600 dark:text-red-400">{limit}</span>
           </label>
           <input
             type="range" min={5} max={100} step={5} value={limit}
             onChange={(e) => setLimit(Number(e.target.value))}
             className="w-full accent-red-600"
           />
-          <div className="flex justify-between text-xs text-gray-400 mt-1">
+          <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
             <span>5</span><span>100</span>
           </div>
         </div>
