@@ -150,7 +150,11 @@ async def _run_pipeline(source: Source, db: Session, *, input_type: str, input_d
         if not create_flashcard:
             continue
 
-        contextual_meaning = llm.get("meaning") or token_dict.get("base_meaning") or token_dict.get("context_snippet", "")
+        # base_meaning  → short direct translation ("patience", "tea farmer")
+        # contextual_meaning → "Refers to..." sentence shown on demand
+        short_meaning = llm.get("meaning") or token_dict.get("base_meaning") or ""
+        context_note = llm.get("context_note") or ""
+        fallback_meaning = token_dict.get("base_meaning") or token_dict.get("context_snippet", "")
         example = llm.get("example") or token_dict.get("context_snippet", "")
 
         card = Flashcard(
@@ -159,8 +163,8 @@ async def _run_pipeline(source: Source, db: Session, *, input_type: str, input_d
             traditional=word_str,
             simplified=word_row.simplified,
             pinyin=word_row.pinyin,
-            contextual_meaning=contextual_meaning,
-            base_meaning=token_dict.get("base_meaning"),
+            base_meaning=short_meaning or fallback_meaning,
+            contextual_meaning=context_note or fallback_meaning,
             example_sentence=example,
             hsk_level=token_dict["hsk_level"],
             tocfl_level=token_dict["tocfl_level"],

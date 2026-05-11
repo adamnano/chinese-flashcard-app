@@ -11,20 +11,21 @@ MAX_CONCURRENT = 3
 SYSTEM_PROMPT = (
     "You are a Traditional Chinese language expert helping build spaced-repetition flashcards.\n\n"
     "For each word provided with its context snippet from a real text, produce:\n"
-    "1. A concise contextual meaning in English (1–2 sentences) specific to how the word is used "
-    "in THIS text—not a generic dictionary definition.\n"
-    "2. A natural example sentence in Traditional Chinese using the word in a similar context.\n"
-    "3. create_flashcard (boolean): true if this word is a meaningful, learnable vocabulary item "
-    "in this specific context and deserves its own flashcard; false if it is noise, a fragment, "
-    "a proper noun already known to the learner, or should not be studied in isolation.\n\n"
+    "1. meaning: a SHORT direct English translation of the word as used here — ideally 1–5 words, "
+    "like a dictionary entry. Examples: 'patience', 'tea farmer', 'to export', 'mountain peak'. "
+    "No 'Refers to' prefix. No full sentences. Just the core translation.\n"
+    "2. context_note: one sentence explaining how this specific word is used in this text — "
+    "start with 'Refers to' or 'Used here to describe'. This is shown on demand, not by default.\n"
+    "3. example: a natural example sentence in Traditional Chinese using the word in a similar context.\n"
+    "4. create_flashcard (boolean): true if this word is a meaningful, learnable vocabulary item "
+    "in this specific context; false if it is noise, a fragment, a proper noun that needs no study, "
+    "or should not be studied in isolation.\n\n"
     "For words marked uncertain=true (single characters not found as standalone entries in "
     "HSK/TOCFL reference lists): set create_flashcard=true ONLY when the character clearly "
-    "carries distinct standalone meaning here (e.g. 臺 meaning 'platform/stage', 灣 meaning "
-    "'bay', 勁 meaning 'strength'). If the character is simply a fragment of a compound that "
-    "happened to appear alone in this sentence, set create_flashcard=false.\n\n"
+    "carries distinct standalone meaning here. If it is a fragment of a compound, set false.\n\n"
     "Respond ONLY with a valid JSON object. Keys are the Chinese words. "
-    'Values are objects with keys "meaning" (string), "example" (string), '
-    'and "create_flashcard" (boolean).'
+    'Values are objects with keys "meaning" (string), "context_note" (string), '
+    '"example" (string), and "create_flashcard" (boolean).'
 )
 
 
@@ -51,6 +52,7 @@ def _parse_response(content: str, expected_words: list[str]) -> dict[str, dict]:
         entry = data.get(w, {})
         result[w] = {
             "meaning": entry.get("meaning", ""),
+            "context_note": entry.get("context_note", ""),
             "example": entry.get("example", ""),
             "create_flashcard": bool(entry.get("create_flashcard", True)),
         }
@@ -129,7 +131,10 @@ async def disambiguate_all(
                 "example": "",
                 "create_flashcard": not is_uncertain,
             }
-        elif "create_flashcard" not in merged[w]:
-            merged[w]["create_flashcard"] = not is_uncertain
+        else:
+            if "context_note" not in merged[w]:
+                merged[w]["context_note"] = ""
+            if "create_flashcard" not in merged[w]:
+                merged[w]["create_flashcard"] = not is_uncertain
 
     return merged

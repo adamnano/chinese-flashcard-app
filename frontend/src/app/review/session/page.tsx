@@ -22,6 +22,7 @@ export default function ReviewSessionPage() {
 
   const [card, setCard] = useState<Flashcard | null>(null);
   const [flipped, setFlipped] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -48,6 +49,7 @@ export default function ReviewSessionPage() {
         setCard(result.next_card);
         setRemaining(result.cards_remaining);
         setFlipped(false);
+        setContextOpen(false);
       }
     } finally {
       setSubmitting(false);
@@ -122,12 +124,27 @@ export default function ReviewSessionPage() {
               <HskBadge level={card.hsk_level} />
               <TocflBadge level={card.tocfl_level} />
             </div>
-            <p className="text-base text-gray-800 mb-3">{card.contextual_meaning}</p>
-            {card.base_meaning && (
-              <p className="text-sm text-gray-500 mb-3">
-                <span className="font-medium">Dictionary:</span> {card.base_meaning}
-              </p>
+
+            {/* Primary meaning — short direct translation */}
+            <p className="text-xl font-semibold text-gray-900 mb-4">{card.base_meaning}</p>
+
+            {/* Context toggle */}
+            {card.contextual_meaning && (
+              <div className="mb-3">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setContextOpen(o => !o); }}
+                  className="text-xs text-red-600 border border-red-200 rounded-full px-3 py-1 hover:bg-red-50 transition-colors"
+                >
+                  {contextOpen ? "Hide context" : "In what context was this used?"}
+                </button>
+                {contextOpen && (
+                  <p className="mt-2 text-sm text-gray-600 italic leading-relaxed">
+                    {card.contextual_meaning}
+                  </p>
+                )}
+              </div>
             )}
+
             {card.example_sentence && (
               <div className="bg-gray-50 rounded-lg p-3 text-sm cjk text-gray-700 border-l-4 border-red-300">
                 {card.example_sentence}
