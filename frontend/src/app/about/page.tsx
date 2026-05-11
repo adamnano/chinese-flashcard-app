@@ -135,7 +135,7 @@ export default function AboutPage() {
   const maxTocfl = TOCFL[TOCFL.length - 1].words;
 
   return (
-    <div className={`${playfair.variable} max-w-4xl pb-20`}>
+    <div className={`${playfair.variable} max-w-4xl mx-auto pb-20`}>
 
       {/* ── Hero ── */}
       <div className="mb-16 border-b border-gray-200 dark:border-gray-800 pb-10">
