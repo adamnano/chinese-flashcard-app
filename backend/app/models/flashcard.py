@@ -22,7 +22,7 @@ class Flashcard(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     word_id: Mapped[int] = mapped_column(Integer, ForeignKey("words.id"), nullable=False)
-    source_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("sources.id", ondelete="SET NULL"))
+    source_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("sources.id", ondelete="CASCADE"))
 
     traditional: Mapped[str] = mapped_column(String, nullable=False)
     simplified: Mapped[str | None] = mapped_column(String)

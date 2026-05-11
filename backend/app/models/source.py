@@ -25,7 +25,7 @@ class Source(Base):
     chapters: Mapped[list[Chapter]] = relationship(
         "Chapter", back_populates="source", cascade="all, delete-orphan", order_by="Chapter.sequence"
     )
-    flashcards: Mapped[list[Flashcard]] = relationship("Flashcard", back_populates="source")
+    flashcards: Mapped[list[Flashcard]] = relationship("Flashcard", back_populates="source", cascade="all, delete-orphan")
 
 
 class Chapter(Base):
