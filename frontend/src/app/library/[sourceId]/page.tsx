@@ -1,18 +1,20 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { getSource, getChapterWords, getIngestStatus } from "@/lib/api";
+import { getSource, getChapterWords, getIngestStatus, deleteSource } from "@/lib/api";
 import type { SourceDetail, Chapter, WordOccurrence } from "@/lib/types";
 import { HskBadge, TocflBadge, StatusBadge } from "@/components/ui/Badge";
 
 export default function SourceDetailPage() {
   const { sourceId } = useParams<{ sourceId: string }>();
+  const router = useRouter();
   const id = Number(sourceId);
   const [source, setSource] = useState<SourceDetail | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [words, setWords] = useState<WordOccurrence[]>([]);
   const [polling, setPolling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadSource = useCallback(() => {
     getSource(id).then((s) => {
@@ -56,8 +58,20 @@ export default function SourceDetailPage() {
       <div className="flex items-center gap-3 mb-6">
         <Link href="/library" className="text-gray-400 hover:text-gray-600 text-sm">← Library</Link>
         <span className="text-gray-300">/</span>
-        <h1 className="text-xl font-bold cjk">{source.title}</h1>
+        <h1 className="text-xl font-bold cjk flex-1">{source.title}</h1>
         <StatusBadge status={source.status} />
+        <button
+          onClick={async () => {
+            if (!confirm(`Delete "${source.title}" and all its flashcards?`)) return;
+            setDeleting(true);
+            await deleteSource(id);
+            router.push("/library");
+          }}
+          disabled={deleting}
+          className="text-xs text-red-500 border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-50 disabled:opacity-50"
+        >
+          {deleting ? "Deleting…" : "Delete source"}
+        </button>
       </div>
 
       {(source.status === "processing" || source.status === "pending") && (
