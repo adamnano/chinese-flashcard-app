@@ -72,6 +72,33 @@ def initialize(
     _initialized = True
 
 
+# Structural particles that jieba sometimes attaches to the preceding character,
+# producing tokens like "灣的" that block compound re-merging.
+_STRUCTURAL_PARTICLES = {"的", "地", "得"}
+
+
+# ---------------------------------------------------------------------------
+# Particle-split pass (runs before re-merge)
+# ---------------------------------------------------------------------------
+
+def _split_trailing_particles(tokens: list[str]) -> list[str]:
+    """Split tokens where a CJK prefix is followed by a structural particle.
+
+    jieba occasionally produces '灣的' as one token. Splitting it to
+    ['灣', '的'] lets the re-merge pass assemble 臺+灣 → 臺灣 normally.
+    Only 的/地/得 are split (the most common cases); 了 and other finals
+    are left intact to avoid breaking multi-char words that end in those chars.
+    """
+    result: list[str] = []
+    for tok in tokens:
+        if len(tok) >= 2 and tok[-1] in _STRUCTURAL_PARTICLES and _has_cjk(tok[-2]):
+            result.append(tok[:-1])
+            result.append(tok[-1])
+        else:
+            result.append(tok)
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Re-merge pass
 # ---------------------------------------------------------------------------
@@ -192,6 +219,7 @@ def tokenize_with_context(text: str) -> list[dict]:
         initialize()
 
     raw = list(jieba.cut(text, cut_all=False))
+    raw = _split_trailing_particles(raw)
     raw = _remerge_single_char_runs(raw)
 
     seen: dict[str, dict] = {}
