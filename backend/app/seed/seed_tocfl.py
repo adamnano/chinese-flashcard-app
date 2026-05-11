@@ -85,7 +85,10 @@ def seed_tocfl():
         print("Cross-populating words table from TOCFL...")
         tocfl_words = db.query(TocflWord).all()
         updated = 0
+        seen_in_session: set[str] = set()
         for tw in tocfl_words:
+            if tw.text in seen_in_session:
+                continue
             existing = db.query(Word).filter_by(traditional=tw.text).first()
             if existing:
                 if existing.tocfl_level is None:
@@ -99,7 +102,11 @@ def seed_tocfl():
                     tocfl_level=tw.tocfl_level,
                     tocfl_category=tw.situation,
                 ))
+                seen_in_session.add(tw.text)
                 updated += 1
+            # Flush every 200 additions so duplicate checks see real DB state
+            if updated % 200 == 0:
+                db.flush()
         db.commit()
         print(f"Words table updated: {updated} TOCFL entries merged. Total: {total}")
     finally:

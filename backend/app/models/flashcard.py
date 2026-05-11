@@ -1,7 +1,13 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from datetime import datetime, date
 from sqlalchemy import Integer, String, Text, Float, Boolean, DateTime, Date, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
+
+if TYPE_CHECKING:
+    from app.models.word import Word
+    from app.models.source import Source
 
 
 class Flashcard(Base):
@@ -18,7 +24,6 @@ class Flashcard(Base):
     word_id: Mapped[int] = mapped_column(Integer, ForeignKey("words.id"), nullable=False)
     source_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("sources.id", ondelete="SET NULL"))
 
-    # Denormalized for fast reads
     traditional: Mapped[str] = mapped_column(String, nullable=False)
     simplified: Mapped[str | None] = mapped_column(String)
     pinyin: Mapped[str | None] = mapped_column(String)
@@ -40,9 +45,9 @@ class Flashcard(Base):
     next_review: Mapped[date] = mapped_column(Date, default=date.today)
     is_suspended: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    word: Mapped = relationship("Word", back_populates="flashcards")
-    source: Mapped = relationship("Source", back_populates="flashcards")
-    review_logs: Mapped[list["ReviewLog"]] = relationship(
+    word: Mapped[Word] = relationship("Word", back_populates="flashcards")
+    source: Mapped[Source | None] = relationship("Source", back_populates="flashcards")
+    review_logs: Mapped[list[ReviewLog]] = relationship(
         "ReviewLog", back_populates="flashcard", cascade="all, delete-orphan"
     )
 
@@ -55,9 +60,9 @@ class ReviewSession(Base):
     ended_at: Mapped[datetime | None] = mapped_column(DateTime)
     cards_reviewed: Mapped[int] = mapped_column(Integer, default=0)
     cards_correct: Mapped[int] = mapped_column(Integer, default=0)
-    filter_config: Mapped[str | None] = mapped_column(Text)  # JSON
+    filter_config: Mapped[str | None] = mapped_column(Text)
 
-    logs: Mapped[list["ReviewLog"]] = relationship(
+    logs: Mapped[list[ReviewLog]] = relationship(
         "ReviewLog", back_populates="session", cascade="all, delete-orphan"
     )
 
@@ -79,5 +84,5 @@ class ReviewLog(Base):
     prev_easiness: Mapped[float | None] = mapped_column(Float)
     new_easiness: Mapped[float | None] = mapped_column(Float)
 
-    session: Mapped["ReviewSession"] = relationship("ReviewSession", back_populates="logs")
-    flashcard: Mapped["Flashcard"] = relationship("Flashcard", back_populates="review_logs")
+    session: Mapped[ReviewSession] = relationship("ReviewSession", back_populates="logs")
+    flashcard: Mapped[Flashcard] = relationship("Flashcard", back_populates="review_logs")
