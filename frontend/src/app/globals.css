@@ -26,13 +26,17 @@ body {
     "Microsoft JhengHei", serif;
 }
 
-/* Flashcard flip animation */
+/* Flashcard flip animation — grid stacking lets card height follow content */
 .card-flip { perspective: 1000px; }
 .card-flip-inner {
   transition: transform 0.45s;
   transform-style: preserve-3d;
-  position: relative;
+  display: grid;
 }
 .card-flip-inner.flipped { transform: rotateY(180deg); }
-.card-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.card-face {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
 .card-back { transform: rotateY(180deg); }

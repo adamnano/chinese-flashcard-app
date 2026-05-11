@@ -105,16 +105,16 @@ export default function ReviewSessionPage() {
 
       {/* Flashcard */}
       <div className="card-flip cursor-pointer mb-6" onClick={() => !flipped && setFlipped(true)}>
-        <div className={`card-flip-inner ${flipped ? "flipped" : ""}`} style={{ minHeight: 260 }}>
+        <div className={`card-flip-inner ${flipped ? "flipped" : ""}`}>
           {/* Front */}
-          <div className="card-face absolute inset-0 bg-white border-2 border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8">
+          <div className="card-face bg-white border-2 border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 min-h-48">
             <div className="text-6xl font-medium cjk mb-3">{card.traditional}</div>
             {!flipped && (
               <p className="text-xs text-gray-400 mt-4">Tap to reveal</p>
             )}
           </div>
           {/* Back */}
-          <div className="card-face card-back absolute inset-0 bg-white border-2 border-red-200 rounded-2xl p-6 overflow-y-auto">
+          <div className="card-face card-back bg-white border-2 border-red-200 rounded-2xl p-6">
             <div className="text-4xl font-medium cjk mb-1">{card.traditional}</div>
             {card.simplified && card.simplified !== card.traditional && (
               <div className="text-lg text-gray-400 cjk">{card.simplified}</div>
