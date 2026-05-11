@@ -1,0 +1,37 @@
+# Environment
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Vocabulary data cache (re-downloaded by seed scripts)
+backend/data/
+
+# Node
+node_modules/
+.next/
+.npm/
+out/
+
+# Database files
+*.db
+*.sqlite
+
+# Editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
