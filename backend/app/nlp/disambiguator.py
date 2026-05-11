@@ -9,13 +9,22 @@ BATCH_SIZE = 30
 MAX_CONCURRENT = 3
 
 SYSTEM_PROMPT = (
-    "You are a Traditional Chinese language expert. "
+    "You are a Traditional Chinese language expert helping build spaced-repetition flashcards.\n\n"
     "For each word provided with its context snippet from a real text, produce:\n"
-    "1. A concise contextual meaning in English (1-2 sentences) specific to how the word is used "
+    "1. A concise contextual meaning in English (1–2 sentences) specific to how the word is used "
     "in THIS text—not a generic dictionary definition.\n"
-    "2. A natural example sentence in Traditional Chinese using the word in a similar context.\n\n"
+    "2. A natural example sentence in Traditional Chinese using the word in a similar context.\n"
+    "3. create_flashcard (boolean): true if this word is a meaningful, learnable vocabulary item "
+    "in this specific context and deserves its own flashcard; false if it is noise, a fragment, "
+    "a proper noun already known to the learner, or should not be studied in isolation.\n\n"
+    "For words marked uncertain=true (single characters not found as standalone entries in "
+    "HSK/TOCFL reference lists): set create_flashcard=true ONLY when the character clearly "
+    "carries distinct standalone meaning here (e.g. 臺 meaning 'platform/stage', 灣 meaning "
+    "'bay', 勁 meaning 'strength'). If the character is simply a fragment of a compound that "
+    "happened to appear alone in this sentence, set create_flashcard=false.\n\n"
     "Respond ONLY with a valid JSON object. Keys are the Chinese words. "
-    'Values are objects with keys "meaning" (string) and "example" (string).'
+    'Values are objects with keys "meaning" (string), "example" (string), '
+    'and "create_flashcard" (boolean).'
 )
 
 
@@ -37,7 +46,15 @@ def _parse_response(content: str, expected_words: list[str]) -> dict[str, dict]:
         data = json.loads(content)
     except json.JSONDecodeError:
         return {}
-    return {w: data.get(w, {"meaning": "", "example": ""}) for w in expected_words}
+    result = {}
+    for w in expected_words:
+        entry = data.get(w, {})
+        result[w] = {
+            "meaning": entry.get("meaning", ""),
+            "example": entry.get("example", ""),
+            "create_flashcard": bool(entry.get("create_flashcard", True)),
+        }
+    return result
 
 
 async def _call_gpt(
@@ -85,6 +102,7 @@ async def disambiguate_all(
                 "word": item["word"],
                 "context": item.get("context_snippet", ""),
                 "base_meaning": item.get("base_meaning") or "",
+                **({"uncertain": True} if item.get("uncertain") else {}),
             }
             for item in chunk
         ]
@@ -99,13 +117,19 @@ async def disambiguate_all(
             continue
         merged.update(result)
 
-    # Fallback for words that didn't get a GPT result
+    # Fallback for words that didn't get a GPT result.
+    # Uncertain single chars fall back to create_flashcard=False (skip);
+    # confirmed vocabulary words fall back to create_flashcard=True (keep).
     for item in words_with_context:
         w = item["word"]
+        is_uncertain = bool(item.get("uncertain"))
         if w not in merged or not merged[w].get("meaning"):
             merged[w] = {
                 "meaning": item.get("base_meaning") or item.get("context_snippet", ""),
                 "example": "",
+                "create_flashcard": not is_uncertain,
             }
+        elif "create_flashcard" not in merged[w]:
+            merged[w]["create_flashcard"] = not is_uncertain
 
     return merged

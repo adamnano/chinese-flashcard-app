@@ -143,6 +143,13 @@ async def _run_pipeline(source: Source, db: Session, *, input_type: str, input_d
             continue
 
         llm = llm_results.get(word_str, {})
+        # Uncertain single chars need explicit LLM approval; confirmed words
+        # are included unless the LLM explicitly rejects them.
+        is_uncertain = token_dict.get("uncertain", False)
+        create_flashcard = llm.get("create_flashcard", not is_uncertain)
+        if not create_flashcard:
+            continue
+
         contextual_meaning = llm.get("meaning") or token_dict.get("base_meaning") or token_dict.get("context_snippet", "")
         example = llm.get("example") or token_dict.get("context_snippet", "")
 

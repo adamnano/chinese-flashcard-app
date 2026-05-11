@@ -180,8 +180,13 @@ def _extract_context(text: str, token: str, window: int = 80) -> str:
 
 def tokenize_with_context(text: str) -> list[dict]:
     """
-    Returns list of {word, count, context_snippet} dicts.
+    Returns list of {word, count, context_snippet, uncertain} dicts.
     Deduplicates tokens; count = total occurrences in text.
+
+    uncertain=True marks single CJK chars that are not in the known-word
+    lists.  They are passed to the LLM for a final keep/drop decision
+    instead of being dropped here — this allows characters like 臺 to
+    survive when context clearly shows standalone use (e.g. "platform").
     """
     if not _initialized:
         initialize()
@@ -192,8 +197,21 @@ def tokenize_with_context(text: str) -> list[dict]:
     seen: dict[str, dict] = {}
     for token in raw:
         token = token.strip()
-        if not _is_valid_token(token):
+        if not token or not _has_cjk(token):
             continue
+        if token in _stopwords:
+            continue
+        if len(token) == 1:
+            if unicodedata.category(token[0]) in ("Po", "Ps", "Pe", "Pi", "Pf", "Pd"):
+                continue
+        # Multi-char tokens and known single chars are confirmed.
+        # Unknown single chars are kept but flagged as uncertain so the
+        # LLM can decide whether they deserve a standalone flashcard.
+        uncertain = (
+            len(token) == 1
+            and bool(_known_single_chars)
+            and token not in _known_single_chars
+        )
         if token in seen:
             seen[token]["count"] += 1
         else:
@@ -201,6 +219,7 @@ def tokenize_with_context(text: str) -> list[dict]:
                 "word": token,
                 "count": 1,
                 "context_snippet": _extract_context(text, token),
+                "uncertain": uncertain,
             }
     return list(seen.values())
 
