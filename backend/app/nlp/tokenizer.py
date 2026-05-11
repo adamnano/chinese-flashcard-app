@@ -1,13 +1,22 @@
-"""Segment Chinese text with jieba, filter noise and stopwords."""
+"""Segment Chinese text with jieba, filter noise and stopwords.
+
+Tokenization quality is improved through three layers:
+1. Userdict: both HSK and TOCFL words are loaded into jieba so it recognises
+   Traditional Chinese compounds before segmentation.
+2. Re-merge pass: after jieba.cut(), any run of single-character CJK tokens
+   is checked against the known-word set; if consecutive chars form a known
+   word they are merged back (e.g. 臺+灣 → 臺灣).
+3. Single-char filter: a lone CJK character is only kept as a flashcard
+   candidate if it appears as a standalone word in HSK or TOCFL.
+"""
 import re
 import unicodedata
 import jieba
-import jieba.posseg as pseg
 from pathlib import Path
 
-CJK_RE = re.compile(r"[一-鿿㐀-䶿豈-﫿]")
+CJK_RE = re.compile(r"[一-鿿㐀-䶿豈-﫿]")
 
-# Grammatical particles/function words with no standalone flashcard value
+# Grammatical particles and function words that are never useful as flashcards
 GRAMMAR_PARTICLES = {
     "的", "了", "嗎", "吧", "啊", "呢", "哦", "喔", "哈", "呀", "嗯",
     "是", "不", "也", "都", "很", "就", "在", "有", "和", "或", "與",
@@ -20,6 +29,8 @@ GRAMMAR_PARTICLES = {
 }
 
 _stopwords: set[str] = set()
+_known_words: set[str] = set()       # all HSK + TOCFL words (for re-merge & single-char filter)
+_known_single_chars: set[str] = set() # subset: single-char entries in HSK/TOCFL
 _initialized = False
 
 
@@ -31,24 +42,87 @@ def _load_stopwords() -> None:
 
 
 def _init_jieba(userdict_words: list[str] | None = None) -> None:
-    global _initialized
-    jieba.setLogLevel(20)  # WARNING level — suppress INFO logs
+    jieba.setLogLevel(20)
     if userdict_words:
-        # Write TOCFL headwords to a temp userdict so jieba recognizes Traditional compounds
         import tempfile, os
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".txt", delete=False) as f:
             for w in userdict_words:
-                f.write(f"{w}\n")
+                if w.strip():
+                    f.write(f"{w.strip()}\n")
             tmp = f.name
         jieba.load_userdict(tmp)
         os.unlink(tmp)
+
+
+def initialize(
+    userdict_words: list[str] | None = None,
+    known_words: set[str] | None = None,
+) -> None:
+    """
+    userdict_words: passed directly to jieba (HSK + TOCFL combined)
+    known_words: full set of HSK + TOCFL headwords used for re-merge and
+                 single-char validation
+    """
+    global _initialized
+    _load_stopwords()
+    _init_jieba(userdict_words)
+    if known_words:
+        _known_words.update(known_words)
+        _known_single_chars.update(w for w in known_words if len(w) == 1)
     _initialized = True
 
 
-def initialize(userdict_words: list[str] | None = None) -> None:
-    _load_stopwords()
-    _init_jieba(userdict_words)
+# ---------------------------------------------------------------------------
+# Re-merge pass
+# ---------------------------------------------------------------------------
 
+def _remerge_single_char_runs(raw_tokens: list[str]) -> list[str]:
+    """
+    After jieba.cut(), scan for consecutive single-character CJK tokens.
+    When 2, 3, or 4 consecutive single chars concatenate to form a word
+    in the known-word set, replace them with that compound word.
+
+    Only single-char tokens are candidates for merging: correctly identified
+    multi-character tokens (e.g. '烏龍') are left intact.
+
+    Longest match is preferred (4-gram > 3-gram > 2-gram).
+    """
+    if not _known_words:
+        return raw_tokens
+
+    result: list[str] = []
+    i = 0
+    while i < len(raw_tokens):
+        tok = raw_tokens[i]
+        # Only attempt merge when the current token is a single CJK char
+        if len(tok) == 1 and _has_cjk(tok):
+            merged = False
+            for n in (4, 3, 2):
+                end = i + n
+                if end > len(raw_tokens):
+                    continue
+                window = raw_tokens[i:end]
+                # All components must be single CJK chars
+                if not all(len(c) == 1 and _has_cjk(c) for c in window):
+                    continue
+                candidate = "".join(window)
+                if candidate in _known_words:
+                    result.append(candidate)
+                    i = end
+                    merged = True
+                    break
+            if not merged:
+                result.append(tok)
+                i += 1
+        else:
+            result.append(tok)
+            i += 1
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Token validation
+# ---------------------------------------------------------------------------
 
 def _has_cjk(token: str) -> bool:
     return bool(CJK_RE.search(token))
@@ -59,11 +133,25 @@ def _is_valid_token(token: str) -> bool:
         return False
     if token in _stopwords:
         return False
-    # Skip single-char tokens that are common particles (not covered by stopwords)
-    if len(token) == 1 and unicodedata.category(token[0]) in ("Po", "Ps", "Pe", "Pi", "Pf", "Pd"):
-        return False
+
+    if len(token) == 1:
+        # Punctuation-category single chars are always dropped
+        if unicodedata.category(token[0]) in ("Po", "Ps", "Pe", "Pi", "Pf", "Pd"):
+            return False
+        # CJK single chars are only kept if they are standalone vocabulary
+        # in HSK or TOCFL. Characters like 臺, 灣, 勁 that only appear in
+        # compounds are excluded because _known_single_chars won't contain them.
+        if _known_single_chars:
+            return token in _known_single_chars
+        # If known_words haven't been loaded yet (e.g. in tests), allow through
+        return True
+
     return True
 
+
+# ---------------------------------------------------------------------------
+# Context extraction
+# ---------------------------------------------------------------------------
 
 def _extract_context(text: str, token: str, window: int = 80) -> str:
     """Return a ~window-char sentence snippet around the first occurrence of token."""
@@ -73,7 +161,6 @@ def _extract_context(text: str, token: str, window: int = 80) -> str:
     start = max(0, idx - window // 2)
     end = min(len(text), idx + len(token) + window // 2)
     snippet = text[start:end].strip()
-    # Trim to sentence boundaries if possible
     for sep in ("。", "！", "？", "；", "\n"):
         left = snippet.rfind(sep, 0, idx - start)
         if left != -1:
@@ -87,16 +174,23 @@ def _extract_context(text: str, token: str, window: int = 80) -> str:
     return snippet.strip()
 
 
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
 def tokenize_with_context(text: str) -> list[dict]:
     """
     Returns list of {word, count, context_snippet} dicts.
-    Deduplicates tokens; count = number of occurrences in text.
+    Deduplicates tokens; count = total occurrences in text.
     """
     if not _initialized:
         initialize()
 
+    raw = list(jieba.cut(text, cut_all=False))
+    raw = _remerge_single_char_runs(raw)
+
     seen: dict[str, dict] = {}
-    for token in jieba.cut(text, cut_all=False):
+    for token in raw:
         token = token.strip()
         if not _is_valid_token(token):
             continue

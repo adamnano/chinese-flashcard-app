@@ -16,14 +16,20 @@ async def lifespan(app: FastAPI):
         classifier.load_lookups(db)
     finally:
         db.close()
-    # Initialize jieba with TOCFL userdict
-    from app.models.vocabulary import TocflWord
+    # Initialize jieba with combined HSK + TOCFL userdict and known-word sets
+    from app.models.vocabulary import HskWord, TocflWord
     db = SessionLocal()
     try:
+        hsk_words = [row.traditional for row in db.query(HskWord).all()]
         tocfl_words = [row.text for row in db.query(TocflWord).all()]
     finally:
         db.close()
-    tokenizer.initialize(userdict_words=tocfl_words if tocfl_words else None)
+    all_userdict = list({*hsk_words, *tocfl_words})
+    known_words = set(classifier._hsk_lookup.keys()) | set(classifier._tocfl_lookup.keys())
+    tokenizer.initialize(
+        userdict_words=all_userdict if all_userdict else None,
+        known_words=known_words if known_words else None,
+    )
     yield
 
 
