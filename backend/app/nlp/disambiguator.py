@@ -18,8 +18,10 @@ SYSTEM_PROMPT = (
     "Write naturally — do not always start with 'Refers to'. Vary the phrasing: describe the "
     "situation, what the word modifies, or why it matters in this context. "
     "This is shown on demand, not by default.\n"
-    "3. example: a natural example sentence in Traditional Chinese using the word in a similar context.\n"
-    "4. create_flashcard (boolean): true if this word is a meaningful, learnable vocabulary item "
+    "3. pinyin: Mandarin pinyin with tone marks for the word (e.g. 'xiǎng yù'). "
+    "Always provide this — it is used as a fallback when our dictionary has no pinyin.\n"
+    "4. example: a natural example sentence in Traditional Chinese using the word in a similar context.\n"
+    "5. create_flashcard (boolean): true if this word is a meaningful, learnable vocabulary item "
     "in this specific context; false if it is noise, a fragment, a proper noun that needs no study, "
     "or should not be studied in isolation.\n\n"
     "For words marked uncertain=true (single characters not found as standalone entries in "
@@ -27,7 +29,7 @@ SYSTEM_PROMPT = (
     "carries distinct standalone meaning here. If it is a fragment of a compound, set false.\n\n"
     "Respond ONLY with a valid JSON object. Keys are the Chinese words. "
     'Values are objects with keys "meaning" (string), "context_note" (string), '
-    '"example" (string), and "create_flashcard" (boolean).'
+    '"pinyin" (string), "example" (string), and "create_flashcard" (boolean).'
 )
 
 
@@ -55,6 +57,7 @@ def _parse_response(content: str, expected_words: list[str]) -> dict[str, dict]:
         result[w] = {
             "meaning": entry.get("meaning", ""),
             "context_note": entry.get("context_note", ""),
+            "pinyin": entry.get("pinyin", ""),
             "example": entry.get("example", ""),
             "create_flashcard": bool(entry.get("create_flashcard", True)),
         }

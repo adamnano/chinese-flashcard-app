@@ -157,12 +157,17 @@ async def _run_pipeline(source: Source, db: Session, *, input_type: str, input_d
         fallback_meaning = token_dict.get("base_meaning") or token_dict.get("context_snippet", "")
         example = llm.get("example") or token_dict.get("context_snippet", "")
 
+        pinyin = word_row.pinyin or llm.get("pinyin") or None
+        # Also backfill the words table so future sources benefit
+        if not word_row.pinyin and pinyin:
+            word_row.pinyin = pinyin
+
         card = Flashcard(
             word_id=word_row.id,
             source_id=source.id,
             traditional=word_str,
             simplified=word_row.simplified,
-            pinyin=word_row.pinyin,
+            pinyin=pinyin,
             base_meaning=short_meaning or fallback_meaning,
             contextual_meaning=context_note or fallback_meaning,
             example_sentence=example,
