@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* CJK character rendering */
+.cjk {
+  font-family: "Noto Serif TC", "Noto Sans TC", "PingFang TC",
+    "Microsoft JhengHei", serif;
+}
+
+/* Flashcard flip animation */
+.card-flip { perspective: 1000px; }
+.card-flip-inner {
+  transition: transform 0.45s;
+  transform-style: preserve-3d;
+  position: relative;
+}
+.card-flip-inner.flipped { transform: rotateY(180deg); }
+.card-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.card-back { transform: rotateY(180deg); }
