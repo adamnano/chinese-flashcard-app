@@ -23,10 +23,17 @@ export default function AboutPage() {
             <strong>Normalization</strong> — Text is converted to Traditional Chinese using OpenCC (s2t mode). This is idempotent: already-Traditional text passes through unchanged.
           </li>
           <li>
-            <strong>Tokenization</strong> — jieba segments the text in precision mode (<code>cut_all=False</code>). A custom user dictionary pre-loaded from TOCFL headwords helps jieba recognize Traditional Chinese compounds not in its default Simplified dictionary.
+            <strong>Tokenization</strong> — jieba segments the text in precision mode (<code>cut_all=False</code>). Both HSK 3.0 and TOCFL headwords are pre-loaded into jieba&apos;s user dictionary at startup so it recognises Traditional Chinese compounds before segmentation begins.
           </li>
           <li>
-            <strong>Filtering</strong> — Tokens are kept only if they contain at least one CJK character (U+4E00–U+9FFF). Common grammatical particles (的、了、嗎…) and stopwords are removed. Each token&apos;s first-occurrence context snippet (~80 characters) is recorded.
+            <strong>Compound re-merge</strong> — After jieba&apos;s initial cut, consecutive single-character CJK tokens are scanned with a sliding window (4→3→2 characters). If joining them produces a word in the HSK/TOCFL vocabulary set, they are merged back into the compound. Example: jieba may emit 臺 + 灣 separately; this pass reassembles them into 臺灣.
+          </li>
+          <li>
+            <strong>Filtering &amp; uncertain tokens</strong> — Stopwords, grammatical particles (的、了、嗎…), and punctuation are removed. Single-character tokens are split into two groups:
+            <ul className="mt-1 ml-5 space-y-1 list-disc">
+              <li><strong>Confirmed</strong> — the character appears as a standalone entry in HSK or TOCFL (e.g. 茶, 山). Included as a flashcard candidate.</li>
+              <li><strong>Uncertain</strong> — the character is not a standalone vocabulary entry (e.g. 臺, 灣 in isolation). Passed to the LLM with a flag rather than dropped immediately.</li>
+            </ul>
           </li>
           <li>
             <strong>Classification</strong> — Each token is looked up in in-memory HSK 3.0 and TOCFL dictionaries (loaded at server startup). Words are assigned a level (HSK 1–7 or TOCFL 1–7) and a topical category if available.
@@ -72,15 +79,25 @@ export default function AboutPage() {
       </section>
 
       <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-2">Context-Aware Translation (GPT-4.1-mini)</h2>
+        <h2 className="text-lg font-semibold mb-2">Context-Aware Translation &amp; Flashcard Gating (GPT-4.1-mini)</h2>
         <p className="text-sm text-gray-700 mb-2">
           Chinese words frequently carry multiple meanings depending on context. A generic dictionary gloss (e.g., &quot;推手 = pushing hands&quot;) may not reflect how a word is used in a specific book or video.
         </p>
         <p className="text-sm text-gray-700 mb-2">
-          After tokenization, words are grouped into batches of 30 and sent to GPT-4.1-mini with their context snippets. The model returns a contextual meaning (1–2 sentences specific to this text) and a natural example sentence in Traditional Chinese.
+          After tokenization, words are grouped into batches of 30 and sent to GPT-4.1-mini with their context snippets. The model returns three things per word:
         </p>
+        <ul className="text-sm text-gray-700 space-y-1 mb-3 ml-4 list-disc">
+          <li><strong>Contextual meaning</strong> — 1–2 sentences specific to how the word is used in this text, not a generic definition.</li>
+          <li><strong>Example sentence</strong> — a natural Traditional Chinese sentence using the word in a similar way.</li>
+          <li>
+            <strong>create_flashcard</strong> — a boolean decision on whether the word deserves its own study card.
+            For <em>confirmed</em> vocabulary (words in HSK/TOCFL), the default is yes unless GPT finds a reason to veto (noise, untranslatable proper noun, etc.).
+            For <em>uncertain</em> single characters, the default is no — GPT must explicitly confirm standalone meaning.
+            Example: 臺 flagged as uncertain might be confirmed if the context clearly shows it means &quot;platform&quot; or &quot;stage&quot;; it stays dropped if it&apos;s just a stray character or part of a compound the re-merge pass missed.
+          </li>
+        </ul>
         <p className="text-sm text-gray-700">
-          Batches run concurrently (up to 3 at once) to reduce processing time. If GPT fails for a word, the app falls back to the HSK/TOCFL dictionary gloss, then to the raw context snippet.
+          Batches run concurrently (up to 3 at once) to reduce processing time. If GPT fails for a word, confirmed vocabulary falls back to the HSK/TOCFL gloss and is included; uncertain single chars are silently dropped.
         </p>
       </section>
 
