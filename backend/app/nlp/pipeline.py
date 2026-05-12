@@ -14,7 +14,9 @@ async def process_source(
     db: Session,
     *,
     input_type: str,
-    input_data: str,  # URL, file path, or raw text
+    input_data: str,
+    selected_chapter_indices: list[int] | None = None,
+    filter_config: dict | None = None,
 ) -> None:
     """Full pipeline: extract → normalize → tokenize → classify → LLM → flashcards."""
     source = db.get(Source, source_id)
@@ -25,7 +27,13 @@ async def process_source(
     db.commit()
 
     try:
-        await _run_pipeline(source, db, input_type=input_type, input_data=input_data)
+        await _run_pipeline(
+            source, db,
+            input_type=input_type,
+            input_data=input_data,
+            selected_chapter_indices=selected_chapter_indices,
+            filter_config=filter_config or {},
+        )
         db.commit()
     except Exception as exc:
         source.status = "error"
@@ -34,9 +42,17 @@ async def process_source(
         raise
 
 
-async def _run_pipeline(source: Source, db: Session, *, input_type: str, input_data: str) -> None:
-    # 1. Extract chapters
-    chapters_raw = _extract(input_type, input_data)
+async def _run_pipeline(
+    source: Source,
+    db: Session,
+    *,
+    input_type: str,
+    input_data: str,
+    selected_chapter_indices: list[int] | None = None,
+    filter_config: dict,
+) -> None:
+    # 1. Extract chapters (optionally filtered by user-selected indices)
+    chapters_raw = _extract(input_type, input_data, selected_indices=selected_chapter_indices)
 
     # Ensure lookups are loaded
     if not classifier.is_loaded():
@@ -150,6 +166,10 @@ async def _run_pipeline(source: Source, db: Session, *, input_type: str, input_d
         if not create_flashcard:
             continue
 
+        # Apply vocabulary level filter
+        if not _passes_level_filter(token_dict, filter_config):
+            continue
+
         # base_meaning  → short direct translation ("patience", "tea farmer")
         # contextual_meaning → "Refers to..." sentence shown on demand
         short_meaning = llm.get("meaning") or token_dict.get("base_meaning") or ""
@@ -183,15 +203,44 @@ async def _run_pipeline(source: Source, db: Session, *, input_type: str, input_d
     db.commit()
 
 
-def _extract(input_type: str, input_data: str) -> list[tuple[str, str]]:
+def _extract(
+    input_type: str,
+    input_data: str,
+    selected_indices: list[int] | None = None,
+) -> list[tuple[str, str]]:
     match input_type:
         case "text":
             return extractor.extract_text(input_data)
         case "pdf":
-            return extractor.extract_pdf(input_data)
+            return extractor.extract_pdf(input_data, selected_indices=selected_indices)
         case "epub":
-            return extractor.extract_epub(input_data)
+            return extractor.extract_epub(input_data, selected_indices=selected_indices)
         case "youtube":
             return extractor.extract_youtube(input_data)
         case _:
             raise ValueError(f"Unknown input type: {input_type}")
+
+
+def _passes_level_filter(token_dict: dict, filter_config: dict) -> bool:
+    """Return True if this word should have a flashcard created given the level filter."""
+    if not filter_config:
+        return True
+
+    min_hsk = filter_config.get("min_hsk_level")
+    min_tocfl = filter_config.get("min_tocfl_level")
+    include_unclassified = filter_config.get("include_unclassified", True)
+
+    hsk = token_dict.get("hsk_level")
+    tocfl = token_dict.get("tocfl_level")
+
+    # Unclassified: both levels are None
+    if hsk is None and tocfl is None:
+        return include_unclassified
+
+    # Check each framework independently; a word passes if it meets all
+    # filters that are applicable to it.
+    if hsk is not None and min_hsk is not None and hsk < min_hsk:
+        return False
+    if tocfl is not None and min_tocfl is not None and tocfl < min_tocfl:
+        return False
+    return True

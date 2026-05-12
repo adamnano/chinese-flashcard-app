@@ -6,12 +6,10 @@ import type { Flashcard, SessionSummary } from "@/lib/types";
 import { HskBadge, TocflBadge } from "@/components/ui/Badge";
 
 const RATINGS = [
-  { quality: 0, label: "Blackout", color: "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 border-red-300 dark:border-red-800 hover:bg-red-200 dark:hover:bg-red-900" },
-  { quality: 1, label: "Wrong", color: "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900 hover:bg-red-100 dark:hover:bg-red-900" },
-  { quality: 2, label: "Knew it (wrong)", color: "bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-900 hover:bg-orange-100 dark:hover:bg-orange-900" },
-  { quality: 3, label: "Hard", color: "bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900 hover:bg-yellow-100 dark:hover:bg-yellow-900" },
-  { quality: 4, label: "Good", color: "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900 hover:bg-green-100 dark:hover:bg-green-900" },
-  { quality: 5, label: "Easy", color: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700 hover:bg-green-200 dark:hover:bg-green-800" },
+  { quality: 1, label: "Again", color: "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800 hover:bg-red-200 dark:hover:bg-red-900" },
+  { quality: 3, label: "Hard",  color: "bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-200 dark:border-orange-800 hover:bg-orange-200 dark:hover:bg-orange-900" },
+  { quality: 4, label: "Good",  color: "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800 hover:bg-blue-200 dark:hover:bg-blue-900" },
+  { quality: 5, label: "Easy",  color: "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800 hover:bg-green-200 dark:hover:bg-green-900" },
 ];
 
 export default function ReviewSessionPage() {
@@ -150,15 +148,14 @@ export default function ReviewSessionPage() {
 
       {/* Rating buttons */}
       {flipped && (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {RATINGS.map(({ quality, label, color }) => (
             <button
               key={quality}
               onClick={() => answer(quality)}
               disabled={submitting}
-              className={`py-2.5 rounded-xl border text-xs font-semibold transition-colors disabled:opacity-50 ${color}`}
+              className={`py-3 rounded-xl border text-sm font-semibold transition-colors disabled:opacity-50 ${color}`}
             >
-              <span className="block text-lg font-bold">{quality}</span>
               {label}
             </button>
           ))}

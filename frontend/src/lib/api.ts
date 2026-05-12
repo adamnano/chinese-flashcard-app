@@ -1,6 +1,7 @@
 import type {
   Source, SourceDetail, Chapter, Flashcard, WordOccurrence,
   ReviewFilter, SessionOut, AnswerOut, DueCount, Stats, SourceStats, IngestStatus,
+  ChapterPreview, IngestOptions,
 } from "./types";
 
 const BASE = "http://localhost:8000/api";
@@ -30,27 +31,51 @@ export const getChapterWords = (sourceId: number, chapterId: number, limit = 100
   );
 
 // --- Ingest ---
-export const ingestText = (title: string, text: string) =>
+export const ingestText = (title: string, text: string, opts: IngestOptions = {}) =>
   request<Source>("/ingest/text", {
     method: "POST",
-    body: JSON.stringify({ title, text }),
+    body: JSON.stringify({
+      title, text,
+      min_hsk_level: opts.minHskLevel ?? null,
+      min_tocfl_level: opts.minTocflLevel ?? null,
+      include_unclassified: opts.includeUnclassified ?? true,
+    }),
   });
 
-export const ingestYoutube = (title: string, url: string) =>
+export const ingestYoutube = (title: string, url: string, opts: IngestOptions = {}) =>
   request<Source>("/ingest/youtube", {
     method: "POST",
-    body: JSON.stringify({ title, url }),
+    body: JSON.stringify({
+      title, url,
+      min_hsk_level: opts.minHskLevel ?? null,
+      min_tocfl_level: opts.minTocflLevel ?? null,
+      include_unclassified: opts.includeUnclassified ?? true,
+    }),
   });
 
 export const ingestFile = async (
   type: "pdf" | "epub",
   title: string,
-  file: File
+  file: File,
+  opts: IngestOptions = {},
 ): Promise<Source> => {
   const form = new FormData();
   form.append("title", title);
   form.append("file", file);
+  if (opts.selectedChapterIndices !== undefined)
+    form.append("selected_chapter_indices", JSON.stringify(opts.selectedChapterIndices));
+  if (opts.minHskLevel != null)    form.append("min_hsk_level", String(opts.minHskLevel));
+  if (opts.minTocflLevel != null)  form.append("min_tocfl_level", String(opts.minTocflLevel));
+  form.append("include_unclassified", String(opts.includeUnclassified ?? true));
   const res = await fetch(`${BASE}/ingest/${type}`, { method: "POST", body: form });
+  if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+  return res.json();
+};
+
+export const previewChapters = async (type: "pdf" | "epub", file: File): Promise<ChapterPreview[]> => {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${BASE}/ingest/${type}/chapters`, { method: "POST", body: form });
   if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
   return res.json();
 };

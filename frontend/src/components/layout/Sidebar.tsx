@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import BaoziLogo from "@/components/ui/BaoziLogo";
 
 const NAV = [
   { href: "/import", label: "Import", icon: "↑" },
@@ -35,9 +36,12 @@ export default function Sidebar() {
 
   return (
     <nav className="w-56 flex-shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col py-6 gap-1">
-      <div className="px-5 pb-4">
-        <span className="text-xl font-bold cjk text-red-700 dark:text-red-400">漢字卡</span>
-        <span className="block text-xs text-gray-400 dark:text-gray-500 mt-0.5">Chinese Flashcards</span>
+      <div className="px-5 pb-4 flex items-start gap-3">
+        <BaoziLogo size={38} />
+        <div>
+          <span className="text-base font-bold tracking-tight text-gray-900 dark:text-gray-50">Tangbao</span>
+          <span className="block text-[10px] text-gray-400 dark:text-gray-500 tracking-wide">Chinese Flashcards</span>
+        </div>
       </div>
 
       {NAV.map(({ href, label, icon }) => {

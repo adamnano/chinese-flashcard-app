@@ -3,7 +3,7 @@ import "./globals.css";
 import Sidebar from "@/components/layout/Sidebar";
 
 export const metadata: Metadata = {
-  title: "Chinese Flashcards",
+  title: "Tangbao",
   description: "Traditional Chinese vocabulary learning with spaced repetition",
 };
 

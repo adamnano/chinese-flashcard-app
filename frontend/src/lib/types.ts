@@ -117,6 +117,19 @@ export interface SourceStats {
   due_today: number;
 }
 
+export interface ChapterPreview {
+  index: number;
+  title: string;
+  char_count: number;
+}
+
+export interface IngestOptions {
+  selectedChapterIndices?: number[];
+  minHskLevel?: number | null;
+  minTocflLevel?: number | null;
+  includeUnclassified?: boolean;
+}
+
 export interface IngestStatus {
   source_id: number;
   status: SourceStatus;

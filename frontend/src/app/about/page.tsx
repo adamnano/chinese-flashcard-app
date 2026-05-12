@@ -9,13 +9,14 @@ const playfair = Playfair_Display({
 
 // ─── Pipeline steps ───────────────────────────────────────────────────────────
 const PIPELINE = [
-  { n: "01", icon: "📥", label: "Input", sub: "PDF · EPUB · YouTube · Text" },
-  { n: "02", icon: "🔄", label: "Normalise", sub: "Simplified → Traditional" },
-  { n: "03", icon: "✂️", label: "Tokenise", sub: "jieba + userdict" },
-  { n: "04", icon: "🔗", label: "Re-merge", sub: "Recover compounds" },
-  { n: "05", icon: "🏷️", label: "Classify", sub: "HSK + TOCFL levels" },
-  { n: "06", icon: "🤖", label: "AI Meaning", sub: "GPT-4.1-mini batch" },
-  { n: "07", icon: "📇", label: "Flashcard", sub: "SM-2 scheduling" },
+  { n: "01", icon: "📥", label: "Input",     sub: "PDF · EPUB · YouTube · Text" },
+  { n: "02", icon: "📄", label: "Extract",   sub: "Chapters · filter noise" },
+  { n: "03", icon: "🔄", label: "Normalise", sub: "Simplified → Traditional" },
+  { n: "04", icon: "✂️", label: "Tokenise",  sub: "jieba + userdict" },
+  { n: "05", icon: "🔗", label: "Re-merge",  sub: "Recover compounds" },
+  { n: "06", icon: "🏷️", label: "Classify",  sub: "HSK + TOCFL levels" },
+  { n: "07", icon: "🤖", label: "AI Meaning",sub: "GPT-4.1-mini batch" },
+  { n: "08", icon: "📇", label: "Flashcard", sub: "SM-2 scheduling" },
 ];
 
 // ─── Tokenisation walkthrough ─────────────────────────────────────────────────
@@ -161,26 +162,37 @@ export default function AboutPage() {
         </h2>
         <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm">Seven stages, end to end.</p>
 
-        <div className="overflow-x-auto pb-2">
-          <div className="flex items-stretch gap-0 min-w-max">
-            {PIPELINE.map((step, i) => (
-              <div key={step.n} className="flex items-stretch">
-                <div className="flex flex-col items-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-4 w-32 shadow-sm">
-                  <span className="text-xs font-mono text-gray-300 dark:text-gray-600 mb-1">{step.n}</span>
-                  <span className="text-2xl mb-2">{step.icon}</span>
-                  <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 text-center">{step.label}</span>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500 text-center mt-1 leading-snug">{step.sub}</span>
-                </div>
-                {i < PIPELINE.length - 1 && (
-                  <div className="flex items-center px-1">
-                    <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
-                      <path d="M0 8h16M10 2l8 6-8 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 dark:text-gray-600" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+        {/*
+          7-column grid: box | arrow | box | arrow | box | arrow | box
+          Row 1: 01 → 02 → 03 → 04
+          Turn:  (6 empty cols)        ↓
+          Row 2: (2 empty) 07 ← 06 ← 05   ← 05 sits under 04
+        */}
+        <div
+          className="grid items-center"
+          style={{ gridTemplateColumns: "1fr auto 1fr auto 1fr auto 1fr" }}
+        >
+          {/* ── Row 1 ── */}
+          <PipelineBox step={PIPELINE[0]} />
+          <PipelineArrow dir="right" />
+          <PipelineBox step={PIPELINE[1]} />
+          <PipelineArrow dir="right" />
+          <PipelineBox step={PIPELINE[2]} />
+          <PipelineArrow dir="right" />
+          <PipelineBox step={PIPELINE[3]} />
+
+          {/* ── Turn: 6 empties + ↓ in col 7 ── */}
+          <div className="col-span-6" />
+          <div className="flex justify-center py-1"><PipelineArrow dir="down" /></div>
+
+          {/* ── Row 2: 08 ← 07 ← 06 ← 05  (05 sits under 04) ── */}
+          <PipelineBox step={PIPELINE[7]} />
+          <PipelineArrow dir="left" />
+          <PipelineBox step={PIPELINE[6]} />
+          <PipelineArrow dir="left" />
+          <PipelineBox step={PIPELINE[5]} />
+          <PipelineArrow dir="left" />
+          <PipelineBox step={PIPELINE[4]} />
         </div>
       </section>
 
@@ -194,7 +206,7 @@ export default function AboutPage() {
         <div className="grid grid-cols-2 gap-4">
           {[
             { icon: "📄", name: "PDF", desc: "PyMuPDF extracts text page-by-page. Chapter headings are detected via font-size heuristics; long documents without headings are chunked at 20 pages." },
-            { icon: "📖", name: "EPUB", desc: "ebooklib reads the spine. Each HTML chapter file is parsed with BeautifulSoup; heading tags become the chapter title." },
+            { icon: "📖", name: "EPUB", desc: "ebooklib reads the spine in reading order. Chapter titles come from the book's table of contents (TOC/NCX). Front matter, copyright pages, navigation files, and chapters with fewer than 50 Chinese characters are automatically skipped. Very short chapters are merged into the next one." },
             { icon: "▶️", name: "YouTube", desc: "youtube-transcript-api fetches captions, preferring zh-TW → zh-Hant → zh. Entries are grouped into 5-minute chapters by timestamp." },
             { icon: "📝", name: "Plain text", desc: "Pasted text is split on double newlines and grouped into 50-paragraph sections. No parsing overhead — instant start." },
           ].map((f) => (
@@ -434,19 +446,16 @@ export default function AboutPage() {
         </div>
 
         {/* Rating guide */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {[
-            { q: 0, label: "Blackout", color: "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800", note: "Reset to day 1" },
-            { q: 1, label: "Wrong", color: "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900", note: "Reset to day 1" },
-            { q: 2, label: "Knew it (wrong)", color: "bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-900", note: "Reset to day 1" },
-            { q: 3, label: "Hard", color: "bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900", note: "Slow growth" },
-            { q: 4, label: "Good", color: "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900", note: "Normal growth" },
-            { q: 5, label: "Easy", color: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700", note: "Fast growth" },
-          ].map(({ q, label, color, note }) => (
-            <div key={q} className={`rounded-xl border p-3 text-center ${color}`}>
-              <div className="text-xl font-bold mb-0.5">{q}</div>
-              <div className="text-[10px] font-semibold leading-tight mb-1">{label}</div>
-              <div className="text-[10px] opacity-70">{note}</div>
+            { label: "Again", color: "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 border-red-300 dark:border-red-800", note: "Reset · quality 1" },
+            { label: "Hard",  color: "bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-200 dark:border-orange-800", note: "Slow · quality 3" },
+            { label: "Good",  color: "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800", note: "Normal · quality 4" },
+            { label: "Easy",  color: "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-400 border-green-300 dark:border-green-800", note: "Fast · quality 5" },
+          ].map(({ label, color, note }) => (
+            <div key={label} className={`rounded-xl border p-3 text-center ${color}`}>
+              <div className="text-sm font-semibold leading-tight mb-1">{label}</div>
+              <div className="text-[10px] opacity-60">{note}</div>
             </div>
           ))}
         </div>
@@ -500,6 +509,47 @@ function SectionLabel({ n }: { n: string }) {
     <div className="flex items-center gap-3 mb-2">
       <span className="font-mono text-xs font-bold text-red-400 dark:text-red-500 tracking-widest">{n}</span>
       <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+    </div>
+  );
+}
+
+function PipelineBox({ step }: { step: typeof PIPELINE[0] }) {
+  return (
+    <div className="flex flex-col items-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-4 w-full shadow-sm">
+      <span className="text-xs font-mono text-gray-300 dark:text-gray-600 mb-1">{step.n}</span>
+      <span className="text-2xl mb-2">{step.icon}</span>
+      <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 text-center leading-snug">{step.label}</span>
+      <span className="text-[10px] text-gray-400 dark:text-gray-500 text-center mt-1 leading-snug">{step.sub}</span>
+    </div>
+  );
+}
+
+function PipelineArrow({ dir }: { dir: "right" | "left" | "down" }) {
+  if (dir === "down") {
+    return (
+      <div className="flex justify-center items-center h-8 text-gray-300 dark:text-gray-600">
+        <svg width="16" height="24" viewBox="0 0 16 24" fill="none">
+          <path d="M8 0v18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <path d="M2 13l6 8 6-8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center px-1 text-gray-300 dark:text-gray-600">
+      <svg width="24" height="16" viewBox="0 0 24 16" fill="none">
+        {dir === "right" ? (
+          <>
+            <path d="M0 8h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <path d="M13 2l8 6-8 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </>
+        ) : (
+          <>
+            <path d="M24 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <path d="M11 2L3 8l8 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </>
+        )}
+      </svg>
     </div>
   );
 }

@@ -29,14 +29,26 @@ class SourceDetail(SourceOut):
     chapters: list[ChapterOut] = []
 
 
+class ChapterPreview(BaseModel):
+    index: int
+    title: str
+    char_count: int
+
+
 class IngestTextRequest(BaseModel):
     title: str
     text: str
+    min_hsk_level: int | None = None
+    min_tocfl_level: int | None = None
+    include_unclassified: bool = True
 
 
 class IngestYoutubeRequest(BaseModel):
     title: str
     url: str
+    min_hsk_level: int | None = None
+    min_tocfl_level: int | None = None
+    include_unclassified: bool = True
 
 
 class IngestStatusOut(BaseModel):

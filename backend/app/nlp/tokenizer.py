@@ -232,14 +232,10 @@ def tokenize_with_context(text: str) -> list[dict]:
         if len(token) == 1:
             if unicodedata.category(token[0]) in ("Po", "Ps", "Pe", "Pi", "Pf", "Pd"):
                 continue
-        # Multi-char tokens and known single chars are confirmed.
-        # Unknown single chars are kept but flagged as uncertain so the
-        # LLM can decide whether they deserve a standalone flashcard.
-        uncertain = (
-            len(token) == 1
-            and bool(_known_single_chars)
-            and token not in _known_single_chars
-        )
+        # Tokens not in HSK/TOCFL are uncertain — LLM decides whether to create a card.
+        # This catches both unknown single chars (fragments) and unknown multi-char
+        # sequences (grammatical co-occurrences like 裡有 that jieba joined incorrectly).
+        uncertain = bool(_known_words) and token not in _known_words
         if token in seen:
             seen[token]["count"] += 1
         else:
