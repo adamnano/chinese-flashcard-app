@@ -49,6 +49,8 @@ def update_flashcard(card_id: int, body: FlashcardUpdate, db: Session = Depends(
         card.is_suspended = body.is_suspended
     if body.contextual_meaning is not None:
         card.contextual_meaning = body.contextual_meaning
+    if body.base_meaning is not None:
+        card.base_meaning = body.base_meaning
     db.commit()
     db.refresh(card)
     return card

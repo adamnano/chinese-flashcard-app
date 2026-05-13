@@ -2,6 +2,7 @@
 from __future__ import annotations
 import asyncio
 from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.config import settings
 from app.models.source import Source, Chapter
 from app.models.word import Word, WordOccurrence
@@ -141,7 +142,10 @@ async def _run_pipeline(
             api_key=settings.openai_api_key,
         )
 
-    # 8. Create flashcards
+    # 8. Create flashcards — one per unique word per source.
+    # all_llm_candidates is already deduplicated by seen_words above, so each
+    # word appears at most once here. We still use ON CONFLICT DO NOTHING as a
+    # safety net against retries or concurrent runs.
     total_cards = 0
     for token_dict in all_llm_candidates:
         word_str = token_dict["word"]
@@ -149,54 +153,43 @@ async def _run_pipeline(
         if not word_row:
             continue
 
-        # One card per (word, source)
-        existing = (
-            db.query(Flashcard)
-            .filter_by(word_id=word_row.id, source_id=source.id)
-            .first()
-        )
-        if existing:
-            continue
-
         llm = llm_results.get(word_str, {})
-        # Uncertain single chars need explicit LLM approval; confirmed words
-        # are included unless the LLM explicitly rejects them.
         is_uncertain = token_dict.get("uncertain", False)
-        create_flashcard = llm.get("create_flashcard", not is_uncertain)
-        if not create_flashcard:
+        if not llm.get("create_flashcard", not is_uncertain):
             continue
 
-        # Apply vocabulary level filter
         if not _passes_level_filter(token_dict, filter_config):
             continue
 
-        # base_meaning  → short direct translation ("patience", "tea farmer")
-        # contextual_meaning → "Refers to..." sentence shown on demand
         short_meaning = llm.get("meaning") or token_dict.get("base_meaning") or ""
         context_note = llm.get("context_note") or ""
         fallback_meaning = token_dict.get("base_meaning") or token_dict.get("context_snippet", "")
         example = llm.get("example") or token_dict.get("context_snippet", "")
 
         pinyin = word_row.pinyin or llm.get("pinyin") or None
-        # Also backfill the words table so future sources benefit
         if not word_row.pinyin and pinyin:
             word_row.pinyin = pinyin
 
-        card = Flashcard(
-            word_id=word_row.id,
-            source_id=source.id,
-            traditional=word_str,
-            simplified=word_row.simplified,
-            pinyin=pinyin,
-            base_meaning=short_meaning or fallback_meaning,
-            contextual_meaning=context_note or fallback_meaning,
-            example_sentence=example,
-            hsk_level=token_dict["hsk_level"],
-            tocfl_level=token_dict["tocfl_level"],
-            tocfl_category=token_dict["tocfl_category"],
+        stmt = (
+            pg_insert(Flashcard)
+            .values(
+                word_id=word_row.id,
+                source_id=source.id,
+                traditional=word_str,
+                simplified=word_row.simplified,
+                pinyin=pinyin,
+                base_meaning=short_meaning or fallback_meaning,
+                contextual_meaning=context_note or fallback_meaning,
+                example_sentence=example,
+                hsk_level=token_dict["hsk_level"],
+                tocfl_level=token_dict["tocfl_level"],
+                tocfl_category=token_dict["tocfl_category"],
+            )
+            .on_conflict_do_nothing(constraint="uq_flashcard_word_source")
         )
-        db.add(card)
-        total_cards += 1
+        result = db.execute(stmt)
+        if result.rowcount:
+            total_cards += 1
 
     source.word_count = len(seen_words)
     source.status = "done"

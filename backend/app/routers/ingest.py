@@ -2,6 +2,7 @@ import asyncio
 import json
 import tempfile
 import os
+from io import BytesIO
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.database import get_db, SessionLocal
@@ -188,6 +189,55 @@ async def ingest_epub(
         finally:
             db2.close()
             os.unlink(tmp_path)
+
+    asyncio.create_task(_run())
+    return source
+
+
+@router.post("/audio", response_model=SourceOut)
+async def ingest_audio(
+    title: str = Form(...),
+    file: UploadFile = File(...),
+    min_hsk_level: int | None = Form(None),
+    min_tocfl_level: int | None = Form(None),
+    include_unclassified: bool = Form(True),
+    db: Session = Depends(get_db),
+):
+    """Accept an audio file, transcribe with Whisper, then process as Chinese text."""
+    content = await file.read()
+    if not content:
+        raise HTTPException(400, "Uploaded audio file is empty.")
+
+    from openai import AsyncOpenAI
+    from app.config import settings as cfg
+
+    oai = AsyncOpenAI(api_key=cfg.openai_api_key)
+    audio_io = BytesIO(content)
+    audio_io.name = file.filename or "recording.m4a"
+    try:
+        transcription = await oai.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_io,
+            language="zh",
+        )
+    except Exception as exc:
+        raise HTTPException(500, f"Whisper transcription failed: {exc}")
+
+    transcript = transcription.text.strip()
+    if not transcript:
+        raise HTTPException(400, "Transcription produced empty text. Make sure the recording contains audible speech.")
+
+    fc = _filter_config(min_hsk_level, min_tocfl_level, include_unclassified)
+    source = _create_source(db, title, "audio")
+
+    async def _run():
+        db2 = SessionLocal()
+        try:
+            await pipeline.process_source(
+                source.id, db2, input_type="text", input_data=transcript, filter_config=fc,
+            )
+        finally:
+            db2.close()
 
     asyncio.create_task(_run())
     return source

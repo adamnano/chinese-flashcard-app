@@ -28,6 +28,7 @@ class FlashcardOut(BaseModel):
 class FlashcardUpdate(BaseModel):
     is_suspended: bool | None = None
     contextual_meaning: str | None = None
+    base_meaning: str | None = None
 
 
 class WordOccurrenceOut(BaseModel):

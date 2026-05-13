@@ -8,23 +8,31 @@ from app.routers import ingest, sources, flashcards, review, stats
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB tables
-    init_db()
-    # Load HSK/TOCFL lookups into memory
-    db = SessionLocal()
+    print("startup: begin", flush=True)
     try:
-        classifier.load_lookups(db)
-    finally:
-        db.close()
-    # Build known_words from classifier lookups — these already include Traditional
-    # alt forms (e.g. 臺灣 from 台灣's text_alt) so they are correct for both the
-    # re-merge pass and the jieba userdict (which needs the Traditional forms to
-    # recognise compounds like 臺灣 before segmentation).
-    known_words = set(classifier._hsk_lookup.keys()) | set(classifier._tocfl_lookup.keys())
-    tokenizer.initialize(
-        userdict_words=list(known_words) if known_words else None,
-        known_words=known_words if known_words else None,
-    )
+        init_db()
+        print("startup: init_db done", flush=True)
+    except Exception as e:
+        print(f"startup: init_db FAILED: {e}", flush=True)
+    try:
+        db = SessionLocal()
+        try:
+            classifier.load_lookups(db)
+        finally:
+            db.close()
+        print("startup: classifier done", flush=True)
+    except Exception as e:
+        print(f"startup: classifier FAILED: {e}", flush=True)
+    try:
+        known_words = set(classifier._hsk_lookup.keys()) | set(classifier._tocfl_lookup.keys())
+        tokenizer.initialize(
+            userdict_words=list(known_words) if known_words else None,
+            known_words=known_words if known_words else None,
+        )
+        print(f"startup: tokenizer done ({len(known_words)} words)", flush=True)
+    except Exception as e:
+        print(f"startup: tokenizer FAILED: {e}", flush=True)
+    print("startup: complete", flush=True)
     yield
 
 
@@ -32,8 +40,8 @@ app = FastAPI(title="Chinese Flashcard API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

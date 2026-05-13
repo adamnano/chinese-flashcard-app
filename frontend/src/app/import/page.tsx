@@ -250,6 +250,21 @@ export default function ImportPage() {
                 ) : null}
               </div>
 
+              {/* While scanning: offer to skip waiting and import everything */}
+              {chaptersLoading && (
+                <div className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Wait to pick specific chapters, or import all now.
+                  </p>
+                  <button
+                    onClick={() => { setChapters([]); setSelectedChapters(new Set()); submit(); }}
+                    className="ml-3 flex-shrink-0 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Import All Now
+                  </button>
+                </div>
+              )}
+
               {!chaptersLoading && chapters.length === 0 && (
                 <p className="text-xs text-gray-400 dark:text-gray-500">No chapters detected — the whole file will be processed.</p>
               )}
@@ -312,10 +327,10 @@ export default function ImportPage() {
 
           <button
             onClick={submit}
-            disabled={loading || chaptersLoading}
+            disabled={loading}
             className="w-full bg-red-600 text-white rounded-lg py-2.5 font-semibold text-sm hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? "Processing…" : "Import & Generate Flashcards"}
+            {loading ? "Processing…" : chaptersLoading ? "Import All Chapters" : "Import & Generate Flashcards"}
           </button>
         </div>
       )}
